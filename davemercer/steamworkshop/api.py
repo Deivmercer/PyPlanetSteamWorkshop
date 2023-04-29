@@ -2,9 +2,12 @@
 Steam Workshop API client
 """
 import aiohttp
+import logging
 from pyplanet import __version__ as pyplanet_version
 
-from exceptions import SWInvalidResponse, SWMapNotFound
+from davemercer.steamworkshop.exceptions import SWInvalidResponse, SWMapNotFound
+
+logger = logging.getLogger(__name__)
 
 
 class SteamWorkshopApi:
@@ -41,4 +44,13 @@ class SteamWorkshopApi:
 
         json = (await res.json())["response"]
 
-        return [(map_info["filename"], map_info["file_url"]) for map_info in json["publishedfiledetails"]]
+        return [(map_info["publishedfileid"], map_info["title"], map_info["file_url"])
+                for map_info in json["publishedfiledetails"]]
+
+    async def download(self, sw_map):
+        res = await self.session.get(sw_map)
+        if res.status == 404:
+            raise SWMapNotFound("Map not found")
+        elif res.status != 200:
+            raise SWInvalidResponse("An error occurred")
+        return res
